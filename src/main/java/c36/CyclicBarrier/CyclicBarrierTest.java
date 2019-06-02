@@ -45,7 +45,7 @@ public class CyclicBarrierTest {
             for (int i = 0; i<10; ++i){
                 sum += data[i][round];
             }
-            PrintUtils.print("当前round : " + round + ", 计算结果: " + sum);
+            PrintUtils.print("当前round : " + round + ", 平均用时: " + sum/10);
             round ++;
         }
     }
