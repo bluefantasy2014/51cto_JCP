@@ -34,10 +34,6 @@ public class CyclicBarrierTest {
             threads.add(thread);
             thread.start();
         }
-        //等待所有线程执行完毕
-        for (Thread thread : threads) {
-            thread.join();
-        }
     }
 
     //计算每个Player比赛耗时的类 (barrierAction)
@@ -77,7 +73,7 @@ public class CyclicBarrierTest {
                 Random r = new Random();
                 int timeSpend = r.nextInt(10);
                 PrintUtils.print(" Player 当前选手:" + this.no + ", 当前round:" + this.round + ", timeSpend: " + timeSpend);
-                //把话费的事件保存到数据中去
+                //把花费的事件保存到数据中去
                 data[no][round] = timeSpend;
 
                 //使用 barrier 保证线程同步,一直等待到所以其他线程到达同样的状态;
