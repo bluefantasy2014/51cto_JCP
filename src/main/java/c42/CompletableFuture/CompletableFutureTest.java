@@ -7,6 +7,7 @@ import org.junit.Test;
 
 import javax.sound.midi.Soundbank;
 import java.util.concurrent.*;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -79,7 +80,7 @@ public class CompletableFutureTest {
     //多个任务进行串联和并联,加入每个任务都有一个返回值，最终的结果就是要把所以的task的结果做字符串拼接操作；
     //并且保证各个task按照指定的顺序执行；
     @Test
-    public void testChainMultipleTasks(){
+    public void testChainMultipleTasks() throws ExecutionException, InterruptedException {
         //task1 需要输出自己的结果，所以是Supplier
         Supplier<String> task1 = new Supplier<String>() {
             @Override
@@ -93,45 +94,48 @@ public class CompletableFutureTest {
         CompletableFuture<String> cf1 = CompletableFuture.supplyAsync(task1);
 
         //task2的逻辑就是把task的输出作为输入，然后加上自己的输出
-        Function<String, CompletableFuture<String>> task2 = (s) ->{
+        Function<String, CompletableFuture<String>> task2Fn = (s) ->{
             PrintUtils.print("task2 is running");
-            return CompletableFuture.supplyAsync(() -> s + "task2");
+            return CompletableFuture.supplyAsync(() -> s + "|task2");
         } ;
         //把task1和task2串联起来
-        cf1.thenCompose(task2);
+        CompletableFuture task2Result = cf1.thenCompose(task2Fn);
 
-
-        //
-        Runnable task2 = new Runnable() {
-            @Override
-            public void run() {
-                PrintUtils.print("task2 is running ");
+        //task2之后，task3和task4可以并行的执行;
+        //task3的输入是task2的输出
+        Function<String,CompletableFuture<String>> task3Fn = (s) ->{
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
+            PrintUtils.print("task3 is running");
+           return CompletableFuture.supplyAsync(() -> s + "|task3");
         };
 
-        Runnable task3 = new Runnable() {
-            @Override
-            public void run() {
-                PrintUtils.print("task3 is running ");
-            }
+        //task4的输入是task2的输出
+        Function<String,CompletableFuture<String>> task4Fn = (s) ->{
+            PrintUtils.print("task4 is running");
+            return CompletableFuture.supplyAsync(() -> s + "|task4");
         };
 
-        Runnable task4 = new Runnable() {
-            @Override
-            public void run() {
-                PrintUtils.print("task4 is running ");
-            }
+        CompletableFuture<String> task3 = task2Result.thenComposeAsync(task3Fn);
+        CompletableFuture<String> task4 = task2Result.thenComposeAsync(task4Fn);
+
+        //task3和task4的结果进行组合
+        BiFunction<String,String,String> combineTask34Fn = (t,v) -> {
+            PrintUtils.print("组合task3 和 task4");
+            return "{" + t + "}{"+ v+"}";
         };
+        CompletableFuture<String> task34Result = task3.thenCombineAsync(task4,combineTask34Fn);
 
-        Runnable task5 = new Runnable() {
-            @Override
-            public void run() {
-                PrintUtils.print("task5 is running ");
-            }
-        };
-
-
-
+        //task5的逻辑就是把task34的结果作为输入
+        Function<String, CompletableFuture<String>> task5Fn = (s) ->{
+            PrintUtils.print("task5 is running");
+            return CompletableFuture.supplyAsync(() -> s + "|task5");
+        } ;
+        CompletableFuture task5Result = task34Result.thenCompose(task5Fn);
+        PrintUtils.print("task5 的输出为:" + task5Result.get());
     }
 
 
