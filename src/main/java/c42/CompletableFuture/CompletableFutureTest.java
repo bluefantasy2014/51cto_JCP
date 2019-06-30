@@ -81,17 +81,11 @@ public class CompletableFutureTest {
     //并且保证各个task按照指定的顺序执行；
     @Test
     public void testChainMultipleTasks() throws ExecutionException, InterruptedException {
-        //task1 需要输出自己的结果，所以是Supplier
-        Supplier<String> task1 = new Supplier<String>() {
-            @Override
-            public String get() {
-                PrintUtils.print("task1 is running ");
-                return "task1";
-            }
-        };
-
         //表示task1的CompletableFuture
-        CompletableFuture<String> cf1 = CompletableFuture.supplyAsync(task1);
+        CompletableFuture<String> task1 = CompletableFuture.supplyAsync(()->{
+            PrintUtils.print("task1 is running ");
+            return "task1";
+        });
 
         //task2的逻辑就是把task的输出作为输入，然后加上自己的输出
         Function<String, CompletableFuture<String>> task2Fn = (s) ->{
@@ -99,7 +93,7 @@ public class CompletableFutureTest {
             return CompletableFuture.supplyAsync(() -> s + "|task2");
         } ;
         //把task1和task2串联起来
-        CompletableFuture task2Result = cf1.thenCompose(task2Fn);
+        CompletableFuture task2Result = task1.thenCompose(task2Fn);
 
         //task2之后，task3和task4可以并行的执行;
         //task3的输入是task2的输出
